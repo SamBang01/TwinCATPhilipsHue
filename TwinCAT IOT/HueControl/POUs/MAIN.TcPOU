@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{d54da75a-1223-4512-a513-19ac6c9dba19}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	fbOpenFile		: FB_FileOpen;
+	fbReadFile		: FB_FileRead;
+	fbCloseFile		: FB_FileClose;
+
+	
+	fbOpenFile2		: FB_FileOpen;
+	fbReadFile2		: FB_FileRead;
+	fbCloseFile2	: FB_FileClose;
+	
+	workingPATH : STRING(84) := 'C:\Users\SamuelB\Documents\TcXaeShell\TwinCAT IOT\TwinCAT IOT\HueControl\POUs\Keys\';
+	
+	ADSRout : STRING(12);
+	APIKey : STRING(40);
+    // trigger command execution for Philips Hue samples
+    bPutPhilipsHue : BOOL;
+
+    fbHttpClientPhilipsHue         : FB_IotHttpClient :=(bKeepAlive:=TRUE, tConnectionTimeout:=T#10S);
+
+    fbHttpPutPhilipsHue            : FB_TestHTTP_Put_PhilipsHue;
+
+    bBlinkingMode                  : BOOL;
+    fbTimer                        : TON:=(PT:=T#1MS);
+    nColor                         : UINT;
+
+	nBrightness: UINT := 100;
+	nSaturation: UINT := 200;
+	
+	x : LREAL;
+	y : LREAL;
+	
+	xy : ARRAY[0..1] OF LREAL;
+	nState: INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[CASE nState OF
+	
+	0:
+		fbOpenFile.bExecute := TRUE;
+		nState := 1;
+
+	1:
+		fbOpenFile(
+			sNetId:= '', 
+			sPathName:= CONCAT(workingPATH, 'ads.config'), 
+			nMode:= FOPEN_MODEREAD);
+			
+		IF NOT fbOpenFile.bError AND NOT fbOpenFile.bBusy THEN
+			fbOpenFile.bExecute := FALSE;
+			fbReadFile.bExecute := TRUE;
+			nState := 2;
+		END_IF
+		
+	2:
+		fbReadFile(
+			sNetId:= '', 
+			hFile:= fbOpenFile.hFile, 
+			pReadBuff:= ADR(ADSRout), 
+			cbReadLen:= SIZEOF(ADSRout));
+			
+		IF NOT fbReadFile.bBusy AND NOT fbReadFile.bError THEN
+			fbReadFile.bExecute := FALSE;
+			fbCloseFile.bExecute := TRUE;
+			nState := 3;
+		END_IF
+
+	3:
+		fbCloseFile(
+			sNetId:= '', 
+			hFile:= fbReadFile.hFile);
+			
+		IF NOT fbCloseFile.bBusy AND NOT fbCloseFile.bError THEN
+			fbCloseFile.bExecute := FALSE;
+			fbOpenFile2.bExecute := TRUE;
+			nState := 4;
+		END_IF
+		
+	4:
+		fbOpenFile2(
+			sNetId:= '', 
+			sPathName:= CONCAT(workingPATH, 'apiKey.config'), 
+			nMode:= FOPEN_MODEREAD);
+			
+		IF NOT fbOpenFile2.bError AND NOT fbOpenFile2.bBusy THEN
+			fbOpenFile2.bExecute := FALSE;
+			fbReadFile2.bExecute := TRUE;
+			nState := 5;
+		END_IF
+		
+	5:
+		fbReadFile2(
+			sNetId:= '', 
+			hFile:= fbOpenFile2.hFile, 
+			pReadBuff:= ADR(APIKey), 
+			cbReadLen:= SIZEOF(APIKey));
+			
+		IF NOT fbReadFile2.bBusy AND NOT fbReadFile2.bError THEN
+			fbReadFile2.bExecute := FALSE;
+			fbCloseFile2.bExecute := TRUE;
+			nState := 6;
+		END_IF
+
+	6:
+		fbCloseFile2(
+			sNetId:= '', 
+			hFile:= fbReadFile2.hFile);
+			
+		IF NOT fbCloseFile2.bBusy AND NOT fbCloseFile2.bError THEN
+			fbCloseFile2.bExecute := FALSE;
+			nState := 7;
+		END_IF
+		
+	7:
+		fbHttpClientPhilipsHue.sHostName := ADSRout;
+		nState := 8;
+		
+		
+	8:
+		//init client parameters at startup
+		xy[0] := x;
+		xy[1] := y;
+		
+		IF NOT fbHttpClientPhilipsHue.bConfigured THEN
+			fbHttpClientPhilipsHue.nHostPort:= 80;
+			fbHttpClientPhilipsHue.stTLS.bNoServerCertCheck:= FALSE;
+		END_IF
+		
+		IF fbHttpClientPhilipsHue.bConfigured THEN
+			fbHttpPutPhilipsHue(bSend:=bPutPhilipsHue, fbClient:=fbHttpClientPhilipsHue, xy := xy, nBrightness := nBrightness, APIKey := APIKey);
+		END_IF
+		
+		IF bBlinkingMode THEN
+			fbTimer(IN:=NOT fbTimer.Q);
+			IF fbTimer.Q THEN
+				IF bPutPhilipsHue THEN
+					bPutPhilipsHue:=FALSE;
+				ELSE
+					bPutPhilipsHue:=TRUE;
+				END_IF
+			END_IF
+		END_IF
+		
+		fbHttpClientPhilipsHue.Execute();
+	
+END_CASE]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="198" Count="37" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="236" Count="36" />
+      <LineId Id="307" Count="0" />
+      <LineId Id="328" Count="1" />
+      <LineId Id="331" Count="0" />
+      <LineId Id="330" Count="0" />
+      <LineId Id="273" Count="27" />
+      <LineId Id="60" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
