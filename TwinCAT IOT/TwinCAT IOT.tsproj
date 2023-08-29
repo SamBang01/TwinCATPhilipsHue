@@ -10,7 +10,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{6B17DD38-5A80-46C7-86A1-CD00AAED1B8D}" Name="HueControl" PrjFilePath="HueControl\HueControl.plcproj" TmcFilePath="HueControl\HueControl.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{4311CF5A-D664-5F5C-5D7C-0F4B97D65B3B}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="HueControl\HueControl.tmc" TmcHash="{B00C14EB-7A61-A6EE-122E-D78238EB61BF}">
 					<Name>HueControl Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Contexts>
